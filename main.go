@@ -388,7 +388,7 @@ func (h *S3Handler) ListBuckets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var buckets []S3Bucket
+	buckets := make([]S3Bucket, 0)
 	for _, bucket := range resp.Buckets {
 		buckets = append(buckets, S3Bucket{
 			Name:         *bucket.Name,
