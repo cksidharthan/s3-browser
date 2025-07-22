@@ -15,17 +15,18 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/cksidharthan/s3-browser/docs"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	_ "github.com/cksidharthan/s3-browser/docs"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
+//go:generate cd frontend && npm run build && cd ..
 //go:embed frontend/dist
 var app embed.FS
 
@@ -69,15 +70,15 @@ type SessionStatusResponse struct {
 
 // Session stores connection information
 type Session struct {
-	ID          string
-	Endpoint    string
-	AccessKey   string
-	SecretKey   string
-	Region      string
-	UseSSL      bool
-	S3Client    *s3.Client
-	CreatedAt   time.Time
-	LastUsed    time.Time
+	ID        string
+	Endpoint  string
+	AccessKey string
+	SecretKey string
+	Region    string
+	UseSSL    bool
+	S3Client  *s3.Client
+	CreatedAt time.Time
+	LastUsed  time.Time
 }
 
 // SessionManager manages user sessions
@@ -209,7 +210,7 @@ type S3Handler struct {
 // NewS3Handler initializes a new S3Handler with session management
 func NewS3Handler(logger *slog.Logger) *S3Handler {
 	sessionManager := NewSessionManager(logger)
-	
+
 	// Start cleanup goroutine
 	go func() {
 		ticker := time.NewTicker(1 * time.Hour)
@@ -459,12 +460,12 @@ func (h *S3Handler) DeleteBucket(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		h.logger.Error("Failed to delete bucket", slog.String("bucket", bucketName), slog.String("error", err.Error()))
-		
+
 		// Determine appropriate status code and user-friendly message based on error
 		errorMessage := err.Error()
 		statusCode := http.StatusInternalServerError
 		userMessage := errorMessage
-		
+
 		// Check for common S3 errors and provide user-friendly messages
 		if strings.Contains(errorMessage, "BucketNotEmpty") {
 			statusCode = http.StatusConflict
@@ -476,7 +477,7 @@ func (h *S3Handler) DeleteBucket(w http.ResponseWriter, r *http.Request) {
 			statusCode = http.StatusForbidden
 			userMessage = "Access denied: You don't have permission to delete this bucket."
 		}
-		
+
 		http.Error(w, userMessage, statusCode)
 		return
 	}
@@ -722,6 +723,85 @@ func (h *S3Handler) ViewObject(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, getObjectResp.Body)
 }
 
+// GetPresignedURL generates a pre-signed URL for accessing an S3 object directly
+// @Summary Get a pre-signed URL for an S3 object
+// @Description Generate a temporary pre-signed URL that allows direct browser access to an S3 object
+// @Tags S3
+// @Accept json
+// @Produce json
+// @Param bucket query string true "S3 bucket name"
+// @Param key query string true "Object key/path in the bucket"
+// @Success 200 {object} map[string]string "Returns a JSON object with the pre-signed URL"
+// @Failure 400 {string} string "Bad request - missing bucket or key parameter"
+// @Failure 401 {string} string "Unauthorized - invalid or missing session"
+// @Failure 500 {string} string "Internal server error"
+// @Router /api/presigned-url [get]
+func (h *S3Handler) GetPresignedURL(w http.ResponseWriter, r *http.Request) {
+	session := h.getSessionFromContext(r)
+	if session == nil {
+		http.Error(w, "No valid session", http.StatusUnauthorized)
+		return
+	}
+
+	bucket := r.URL.Query().Get("bucket")
+	if bucket == "" {
+		http.Error(w, "Bucket name is required", http.StatusBadRequest)
+		return
+	}
+
+	key := r.URL.Query().Get("key")
+	if key == "" {
+		http.Error(w, "Object key is required", http.StatusBadRequest)
+		return
+	}
+
+	// Determine the content type based on file extension
+	contentType := "application/octet-stream"
+	ext := strings.ToLower(filepath.Ext(key))
+	switch ext {
+	case ".jpg", ".jpeg":
+		contentType = "image/jpeg"
+	case ".png":
+		contentType = "image/png"
+	case ".gif":
+		contentType = "image/gif"
+	case ".pdf":
+		contentType = "application/pdf"
+	case ".mp4":
+		contentType = "video/mp4"
+	case ".mp3":
+		contentType = "audio/mpeg"
+	}
+
+	// Create the presigner
+	presignClient := s3.NewPresignClient(session.S3Client)
+
+	// Generate a presigned URL with the content type explicitly set
+	presignResult, err := presignClient.PresignGetObject(context.TODO(), &s3.GetObjectInput{
+		Bucket:              aws.String(bucket),
+		Key:                 aws.String(key),
+		ResponseContentType: aws.String(contentType), // Force the correct content type
+	}, func(opts *s3.PresignOptions) {
+		opts.Expires = 15 * time.Minute
+	})
+
+	if err != nil {
+		h.logger.Error("Failed to generate presigned URL",
+			slog.String("bucket", bucket),
+			slog.String("key", key),
+			slog.String("error", err.Error()))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Return the presigned URL as JSON
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"url": presignResult.URL,
+	})
+}
+
 func main() {
 	// Initialize structured logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
@@ -760,6 +840,7 @@ func main() {
 	apiRouter.HandleFunc("/objects/{key}", handler.requireSession(handler.ViewObject)).Methods("GET")
 	apiRouter.HandleFunc("/objects/{key}", handler.requireSession(handler.UploadObject)).Methods("POST")
 	apiRouter.HandleFunc("/objects/{key}", handler.requireSession(handler.DeleteObject)).Methods("DELETE")
+	apiRouter.HandleFunc("/presigned-url", handler.requireSession(handler.GetPresignedURL)).Methods("GET")
 
 	// For backward compatibility (maintaining the original routes)
 	apiRouter.HandleFunc("/list", handler.requireSession(handler.ListObjects)).Methods("GET")

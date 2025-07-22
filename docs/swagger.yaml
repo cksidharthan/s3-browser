@@ -147,6 +147,19 @@ paths:
       summary: Connect to S3
       tags:
       - Session
+  /api/logout:
+    post:
+      description: Destroys the current session and clears cookies
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Logout
+      tags:
+      - Session
   /api/objects:
     get:
       consumes:
@@ -263,6 +276,47 @@ paths:
           schema:
             type: string
       summary: Upload object
+      tags:
+      - S3
+  /api/presigned-url:
+    get:
+      consumes:
+      - application/json
+      description: Generate a temporary pre-signed URL that allows direct browser
+        access to an S3 object
+      parameters:
+      - description: S3 bucket name
+        in: query
+        name: bucket
+        required: true
+        type: string
+      - description: Object key/path in the bucket
+        in: query
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns a JSON object with the pre-signed URL
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request - missing bucket or key parameter
+          schema:
+            type: string
+        "401":
+          description: Unauthorized - invalid or missing session
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Get a pre-signed URL for an S3 object
       tags:
       - S3
   /api/session/status:

@@ -152,6 +152,26 @@
                 }
             }
         },
+        "/api/logout": {
+            "post": {
+                "description": "Destroys the current session and clears cookies",
+                "tags": [
+                    "Session"
+                ],
+                "summary": "Logout",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/objects": {
             "get": {
                 "description": "Retrieves a list of objects from the S3 bucket.",
@@ -321,6 +341,66 @@
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/presigned-url": {
+            "get": {
+                "description": "Generate a temporary pre-signed URL that allows direct browser access to an S3 object",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "S3"
+                ],
+                "summary": "Get a pre-signed URL for an S3 object",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "S3 bucket name",
+                        "name": "bucket",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Object key/path in the bucket",
+                        "name": "key",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Returns a JSON object with the pre-signed URL",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - missing bucket or key parameter",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - invalid or missing session",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "type": "string"
                         }

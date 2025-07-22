@@ -19,7 +19,7 @@
               Objects in: <span class="text-blue-600">{{ bucket }}</span>
             </h1>
           </div>
-          
+
           <div class="flex items-center space-x-4">
             <!-- Connection Details Button -->
             <button
@@ -31,7 +31,7 @@
               </svg>
               Connection Info
             </button>
-            
+
             <!-- Logout Button -->
             <button
               @click="logout"
@@ -51,7 +51,7 @@
     <main class="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       <ObjectList :bucket="bucket" />
     </main>
-    
+
     <!-- Connection Details Modal -->
     <div v-if="showConnectionModal" class="fixed inset-0 z-50 overflow-y-auto">
       <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
@@ -64,7 +64,7 @@
               </svg>
               <h3 class="text-lg font-medium text-gray-900">Connection Details</h3>
             </div>
-            
+
             <div v-if="connectionInfo" class="space-y-3">
               <div class="flex justify-between py-2 border-b">
                 <span class="text-sm font-medium text-gray-500">Endpoint:</span>
@@ -76,20 +76,20 @@
               </div>
               <div class="flex justify-between py-2 border-b">
                 <span class="text-sm font-medium text-gray-500">Access Key:</span>
-                <span class="text-sm text-gray-900">{{ connectionInfo.access_key.substring(0, 8) }}...</span>
+                <span class="text-sm text-gray-900">{{ connectionInfo.access_key }}</span>
               </div>
               <div class="flex justify-between py-2">
                 <span class="text-sm font-medium text-gray-500">SSL:</span>
                 <span class="text-sm text-gray-900">{{ connectionInfo.use_ssl ? 'Enabled' : 'Disabled' }}</span>
               </div>
             </div>
-            
+
             <div v-else class="text-center py-4">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
               <p class="text-sm text-gray-500 mt-2">Loading connection details...</p>
             </div>
           </div>
-          
+
           <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
             <button
               @click="showConnectionModal = false"
@@ -157,7 +157,7 @@ const checkSession = async () => {
   try {
     const response = await fetch('/api/session/status')
     const data = await response.json()
-    
+
     if (!data.has_session) {
       // No session, redirect to home
       router.push('/')

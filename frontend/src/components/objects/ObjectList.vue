@@ -140,7 +140,7 @@
         <div class="inline-block bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
           <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Upload Object</h3>
-            
+
             <div class="mb-4">
               <label class="block text-sm font-medium text-gray-700 mb-2">Object Key (Name)</label>
               <input
@@ -150,7 +150,7 @@
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
             </div>
-            
+
             <div class="mb-4">
               <label class="block text-sm font-medium text-gray-700 mb-2">File</label>
               <input
@@ -160,7 +160,7 @@
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
             </div>
-            
+
             <div v-if="selectedFile" class="mb-4 p-3 bg-gray-50 rounded-md">
               <p class="text-sm text-gray-700"><strong>File:</strong> {{ selectedFile.name }}</p>
               <p class="text-sm text-gray-700"><strong>Size:</strong> {{ formatFileSize(selectedFile.size) }}</p>
@@ -249,10 +249,10 @@ const fileInput = ref<HTMLInputElement | null>(null)
 // Methods
 const refreshObjects = async () => {
   if (!props.bucket) return
-  
+
   loading.value = true
   error.value = ''
-  
+
   try {
     const response = await fetch(`/api/objects?bucket=${encodeURIComponent(props.bucket)}`, {
       method: 'GET',
@@ -278,7 +278,7 @@ const refreshObjects = async () => {
 
 const deleteObject = async () => {
   if (!objectToDelete.value) return
-  
+
   try {
     const response = await fetch(`/api/objects/${encodeURIComponent(objectToDelete.value)}?bucket=${encodeURIComponent(props.bucket)}`, {
       method: 'DELETE',
@@ -303,18 +303,104 @@ const deleteObject = async () => {
 
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes'
-  
+
   const k = 1024
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-// Object action functions
 const viewObject = (key: string) => {
-  // Use existing view endpoint that returns pre-signed URL
-  window.open(`/api/view/${encodeURIComponent(key)}?bucket=${encodeURIComponent(props.bucket)}`, '_blank')
+  const fileExtension = key.split('.').pop()?.toLowerCase();
+  const mediaExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'mp4', 'webm', 'mp3', 'wav', 'ogg', 'pdf'];
+
+  // Use the existing view endpoint for all files
+  const viewUrl = `/api/view/${encodeURIComponent(key)}?bucket=${encodeURIComponent(props.bucket)}`;
+
+  if (fileExtension && mediaExtensions.includes(fileExtension)) {
+    // For media files, create a modal with appropriate embedded content
+    const modal = document.createElement('div');
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(0,0,0,0.8)';
+    modal.style.zIndex = '9999';
+    modal.style.display = 'flex';
+    modal.style.justifyContent = 'center';
+    modal.style.alignItems = 'center';
+
+    // Create close button
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Close';
+    closeBtn.style.position = 'absolute';
+    closeBtn.style.top = '20px';
+    closeBtn.style.right = '20px';
+    closeBtn.style.padding = '10px';
+    closeBtn.style.background = '#fff';
+    closeBtn.style.border = 'none';
+    closeBtn.style.borderRadius = '5px';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.onclick = () => document.body.removeChild(modal);
+
+    let content: HTMLElement;
+
+    // Create appropriate element based on file type
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'].includes(fileExtension)) {
+      const imgElement = document.createElement('img');
+      imgElement.src = viewUrl;
+      imgElement.style.maxWidth = '90%';
+      imgElement.style.maxHeight = '90%';
+      imgElement.style.objectFit = 'contain';
+      content = imgElement;
+    } else if (['mp4', 'webm'].includes(fileExtension)) {
+      const videoElement = document.createElement('video');
+      videoElement.src = viewUrl;
+      videoElement.controls = true;
+      videoElement.autoplay = true;
+      videoElement.style.maxWidth = '90%';
+      videoElement.style.maxHeight = '90%';
+      content = videoElement;
+    } else if (['mp3', 'wav', 'ogg'].includes(fileExtension)) {
+      const audioElement = document.createElement('audio');
+      audioElement.src = viewUrl;
+      audioElement.controls = true;
+      audioElement.autoplay = true;
+      audioElement.style.width = '80%';
+      content = audioElement;
+    } else if (fileExtension === 'pdf') {
+      const iframeElement = document.createElement('iframe');
+      iframeElement.src = viewUrl;
+      iframeElement.style.width = '90%';
+      iframeElement.style.height = '90%';
+      iframeElement.style.border = 'none';
+      content = iframeElement;
+    } else {
+      // Default case for other media types - use iframe
+      const iframeElement = document.createElement('iframe');
+      iframeElement.src = viewUrl;
+      iframeElement.style.width = '90%';
+      iframeElement.style.height = '90%';
+      iframeElement.style.border = 'none';
+      content = iframeElement;
+    }
+
+    // Add click handler to close when clicking outside the content
+    modal.onclick = (event) => {
+      if (event.target === modal) {
+        document.body.removeChild(modal);
+      }
+    };
+
+    modal.appendChild(content);
+    modal.appendChild(closeBtn);
+    document.body.appendChild(modal);
+  } else {
+    // For non-media files (like JSON, text, etc.), open in a new tab
+    window.open(viewUrl, '_blank');
+  }
 }
 
 const downloadObject = (key: string) => {
@@ -346,17 +432,17 @@ const handleFileSelect = (event: Event) => {
 
 const uploadFile = async () => {
   if (!selectedFile.value || !props.bucket) return
-  
+
   uploading.value = true
   error.value = ''
-  
+
   try {
     const formData = new FormData()
     formData.append('file', selectedFile.value)
-    
+
     // Use uploadKey if provided, otherwise use filename
     const key = uploadKey.value || selectedFile.value.name
-    
+
     const response = await fetch(`/api/objects/${encodeURIComponent(key)}?bucket=${encodeURIComponent(props.bucket)}`, {
       method: 'POST',
       body: formData
