@@ -1,0 +1,281 @@
+basePath: /
+definitions:
+  main.ConnectionRequest:
+    properties:
+      access_key:
+        type: string
+      endpoint:
+        type: string
+      region:
+        type: string
+      secret_key:
+        type: string
+      use_ssl:
+        type: boolean
+    type: object
+  main.ConnectionResponse:
+    properties:
+      message:
+        type: string
+      session_id:
+        type: string
+      success:
+        type: boolean
+    type: object
+  main.S3Bucket:
+    properties:
+      creation_date:
+        type: string
+      name:
+        type: string
+    type: object
+  main.S3Object:
+    description: API for S3 operations
+    properties:
+      etag:
+        type: string
+      key:
+        type: string
+      size:
+        type: integer
+      storage_class:
+        type: string
+    type: object
+  main.SessionStatusResponse:
+    properties:
+      has_session:
+        type: boolean
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API for S3 operations
+  title: S3 API
+  version: "1.0"
+paths:
+  /api/buckets:
+    get:
+      consumes:
+      - application/json
+      description: Lists all S3 buckets the user has access to
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.S3Bucket'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List buckets
+      tags:
+      - S3
+  /api/buckets/{name}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes an S3 bucket with the given name
+      parameters:
+      - description: Bucket Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete bucket
+      tags:
+      - S3
+    put:
+      consumes:
+      - application/json
+      description: Creates a new S3 bucket with the given name
+      parameters:
+      - description: Bucket Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Bucket created
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create bucket
+      tags:
+      - S3
+  /api/connect:
+    post:
+      consumes:
+      - application/json
+      description: Tests connection and creates a session if successful
+      parameters:
+      - description: Connection parameters
+        in: body
+        name: connection
+        required: true
+        schema:
+          $ref: '#/definitions/main.ConnectionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.ConnectionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.ConnectionResponse'
+      summary: Connect to S3
+      tags:
+      - Session
+  /api/objects:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of objects from the S3 bucket.
+      parameters:
+      - description: Bucket name
+        in: query
+        name: bucket
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.S3Object'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List objects
+      tags:
+      - S3
+  /api/objects/{key}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes an object from the S3 bucket by key.
+      parameters:
+      - description: Bucket name
+        in: query
+        name: bucket
+        required: true
+        type: string
+      - description: Object Key
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete object
+      tags:
+      - S3
+    get:
+      consumes:
+      - application/json
+      description: Retrieves an object from the S3 bucket by key.
+      parameters:
+      - description: Bucket name
+        in: query
+        name: bucket
+        required: true
+        type: string
+      - description: Object Key
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: Object data
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: View object
+      tags:
+      - S3
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads an object to the S3 bucket
+      parameters:
+      - description: Bucket name
+        in: query
+        name: bucket
+        required: true
+        type: string
+      - description: Object Key
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Object uploaded
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Upload object
+      tags:
+      - S3
+  /api/session/status:
+    get:
+      description: Checks if user has an active S3 session
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.SessionStatusResponse'
+      summary: Check session status
+      tags:
+      - Session
+swagger: "2.0"
