@@ -315,8 +315,8 @@ const viewObject = (key: string) => {
   const fileExtension = key.split('.').pop()?.toLowerCase();
   const mediaExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'mp4', 'webm', 'mp3', 'wav', 'ogg', 'pdf'];
 
-  // Use the existing view endpoint for all files
-  const viewUrl = `/api/view/${encodeURIComponent(key)}?bucket=${encodeURIComponent(props.bucket)}`;
+  // Use the objects endpoint for viewing files
+  const viewUrl = `/api/objects/${encodeURIComponent(key)}?bucket=${encodeURIComponent(props.bucket)}`;
 
   if (fileExtension && mediaExtensions.includes(fileExtension)) {
     // For media files, create a modal with appropriate embedded content
@@ -406,7 +406,7 @@ const viewObject = (key: string) => {
 const downloadObject = (key: string) => {
   // Direct download by creating a link to the object endpoint
   const link = document.createElement('a')
-  link.href = `/api/objects?bucket=${encodeURIComponent(props.bucket)}&key=${encodeURIComponent(key)}`
+  link.href = `/api/objects/${encodeURIComponent(key)}?bucket=${encodeURIComponent(props.bucket)}`
   link.download = key.split('/').pop() || key
   link.target = '_blank'
   document.body.appendChild(link)

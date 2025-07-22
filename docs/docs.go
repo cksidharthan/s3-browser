@@ -17,15 +17,12 @@ const docTemplate = `{
     "paths": {
         "/api/buckets": {
             "get": {
-                "description": "Lists all S3 buckets the user has access to",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Lists all S3 buckets accessible to the current session",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "S3"
+                    "Buckets"
                 ],
                 "summary": "List buckets",
                 "responses": {
@@ -34,7 +31,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/main.S3Bucket"
+                                "$ref": "#/definitions/models.S3Bucket"
                             }
                         }
                     },
@@ -57,7 +54,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "S3"
+                    "Buckets"
                 ],
                 "summary": "Create bucket",
                 "parameters": [
@@ -71,7 +68,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Bucket created",
+                        "description": "Created"
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "string"
                         }
@@ -93,7 +93,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "S3"
+                    "Buckets"
                 ],
                 "summary": "Delete bucket",
                 "parameters": [
@@ -109,6 +109,18 @@ const docTemplate = `{
                     "204": {
                         "description": "No Content"
                     },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict - Bucket not empty",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -120,7 +132,7 @@ const docTemplate = `{
         },
         "/api/connect": {
             "post": {
-                "description": "Tests connection and creates a session if successful",
+                "description": "Establish connection to S3 storage and create session",
                 "consumes": [
                     "application/json"
                 ],
@@ -138,7 +150,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/main.ConnectionRequest"
+                            "$ref": "#/definitions/models.ConnectionRequest"
                         }
                     }
                 ],
@@ -146,13 +158,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.ConnectionResponse"
+                            "$ref": "#/definitions/models.ConnectionResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/main.ConnectionResponse"
+                            "$ref": "#/definitions/models.ConnectionResponse"
                         }
                     }
                 }
@@ -180,15 +192,12 @@ const docTemplate = `{
         },
         "/api/objects": {
             "get": {
-                "description": "Retrieves a list of objects from the S3 bucket.",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Lists all objects in a specified S3 bucket",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "S3"
+                    "Objects"
                 ],
                 "summary": "List objects",
                 "parameters": [
@@ -206,8 +215,14 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/main.S3Object"
+                                "$ref": "#/definitions/models.S3Object"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     "500": {
@@ -221,36 +236,39 @@ const docTemplate = `{
         },
         "/api/objects/{key}": {
             "get": {
-                "description": "Retrieves an object from the S3 bucket by key.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/octet-stream"
-                ],
+                "description": "Retrieves an object from S3 for viewing or download",
                 "tags": [
-                    "S3"
+                    "Objects"
                 ],
-                "summary": "View object",
+                "summary": "View/Download object",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Object key",
+                        "name": "key",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "Bucket name",
                         "name": "bucket",
                         "in": "query",
                         "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Object Key",
-                        "name": "key",
-                        "in": "path",
-                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Object data",
+                        "description": "Object content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Object not found",
                         "schema": {
                             "type": "string"
                         }
@@ -264,7 +282,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Uploads an object to the S3 bucket",
+                "description": "Uploads a file to the specified S3 bucket",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -272,22 +290,22 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "S3"
+                    "Objects"
                 ],
                 "summary": "Upload object",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bucket name",
-                        "name": "bucket",
-                        "in": "query",
+                        "description": "Object key",
+                        "name": "key",
+                        "in": "path",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Object Key",
-                        "name": "key",
-                        "in": "path",
+                        "description": "Bucket name",
+                        "name": "bucket",
+                        "in": "query",
                         "required": true
                     },
                     {
@@ -300,7 +318,16 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Object uploaded",
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "string"
                         }
@@ -314,36 +341,42 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Deletes an object from the S3 bucket by key.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
+                "description": "Deletes an object from the specified S3 bucket",
                 "tags": [
-                    "S3"
+                    "Objects"
                 ],
                 "summary": "Delete object",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Object key",
+                        "name": "key",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "Bucket name",
                         "name": "bucket",
                         "in": "query",
                         "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Object Key",
-                        "name": "key",
-                        "in": "path",
-                        "required": true
                     }
                 ],
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Object not found",
+                        "schema": {
+                            "type": "string"
+                        }
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -356,28 +389,25 @@ const docTemplate = `{
         },
         "/api/presigned-url": {
             "get": {
-                "description": "Generate a temporary pre-signed URL that allows direct browser access to an S3 object",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Generate a temporary URL for direct browser access to an S3 object",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "S3"
+                    "Objects"
                 ],
-                "summary": "Get a pre-signed URL for an S3 object",
+                "summary": "Get presigned URL",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "S3 bucket name",
+                        "description": "Bucket name",
                         "name": "bucket",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Object key/path in the bucket",
+                        "description": "Object key",
                         "name": "key",
                         "in": "query",
                         "required": true
@@ -385,7 +415,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Returns a JSON object with the pre-signed URL",
+                        "description": "OK",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -394,19 +424,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad request - missing bucket or key parameter",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized - invalid or missing session",
+                        "description": "Bad Request",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "string"
                         }
@@ -416,7 +440,7 @@ const docTemplate = `{
         },
         "/api/session/status": {
             "get": {
-                "description": "Checks if user has an active S3 session",
+                "description": "Check if the current request has a valid session",
                 "produces": [
                     "application/json"
                 ],
@@ -428,7 +452,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.SessionStatusResponse"
+                            "$ref": "#/definitions/models.SessionStatusResponse"
                         }
                     }
                 }
@@ -436,7 +460,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "main.ConnectionRequest": {
+        "models.ConnectionRequest": {
             "type": "object",
             "properties": {
                 "access_key": {
@@ -456,7 +480,7 @@ const docTemplate = `{
                 }
             }
         },
-        "main.ConnectionResponse": {
+        "models.ConnectionResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -470,7 +494,7 @@ const docTemplate = `{
                 }
             }
         },
-        "main.S3Bucket": {
+        "models.S3Bucket": {
             "type": "object",
             "properties": {
                 "creation_date": {
@@ -481,14 +505,16 @@ const docTemplate = `{
                 }
             }
         },
-        "main.S3Object": {
-            "description": "API for S3 operations",
+        "models.S3Object": {
             "type": "object",
             "properties": {
                 "etag": {
                     "type": "string"
                 },
                 "key": {
+                    "type": "string"
+                },
+                "last_modified": {
                     "type": "string"
                 },
                 "size": {
@@ -499,7 +525,7 @@ const docTemplate = `{
                 }
             }
         },
-        "main.SessionStatusResponse": {
+        "models.SessionStatusResponse": {
             "type": "object",
             "properties": {
                 "has_session": {
@@ -514,10 +540,10 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8080",
-	BasePath:         "/",
+	BasePath:         "/api",
 	Schemes:          []string{},
-	Title:            "S3 API",
-	Description:      "API for S3 operations",
+	Title:            "S3 Browser API",
+	Description:      "A modern web-based file manager for S3-compatible storage systems",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

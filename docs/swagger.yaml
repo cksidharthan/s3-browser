@@ -1,6 +1,6 @@
-basePath: /
+basePath: /api
 definitions:
-  main.ConnectionRequest:
+  models.ConnectionRequest:
     properties:
       access_key:
         type: string
@@ -13,7 +13,7 @@ definitions:
       use_ssl:
         type: boolean
     type: object
-  main.ConnectionResponse:
+  models.ConnectionResponse:
     properties:
       message:
         type: string
@@ -22,26 +22,27 @@ definitions:
       success:
         type: boolean
     type: object
-  main.S3Bucket:
+  models.S3Bucket:
     properties:
       creation_date:
         type: string
       name:
         type: string
     type: object
-  main.S3Object:
-    description: API for S3 operations
+  models.S3Object:
     properties:
       etag:
         type: string
       key:
+        type: string
+      last_modified:
         type: string
       size:
         type: integer
       storage_class:
         type: string
     type: object
-  main.SessionStatusResponse:
+  models.SessionStatusResponse:
     properties:
       has_session:
         type: boolean
@@ -49,15 +50,13 @@ definitions:
 host: localhost:8080
 info:
   contact: {}
-  description: API for S3 operations
-  title: S3 API
+  description: A modern web-based file manager for S3-compatible storage systems
+  title: S3 Browser API
   version: "1.0"
 paths:
   /api/buckets:
     get:
-      consumes:
-      - application/json
-      description: Lists all S3 buckets the user has access to
+      description: Lists all S3 buckets accessible to the current session
       produces:
       - application/json
       responses:
@@ -65,7 +64,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/main.S3Bucket'
+              $ref: '#/definitions/models.S3Bucket'
             type: array
         "500":
           description: Internal Server Error
@@ -73,7 +72,7 @@ paths:
             type: string
       summary: List buckets
       tags:
-      - S3
+      - Buckets
   /api/buckets/{name}:
     delete:
       consumes:
@@ -90,13 +89,21 @@ paths:
       responses:
         "204":
           description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "409":
+          description: Conflict - Bucket not empty
+          schema:
+            type: string
         "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Delete bucket
       tags:
-      - S3
+      - Buckets
     put:
       consumes:
       - application/json
@@ -111,7 +118,9 @@ paths:
       - application/json
       responses:
         "201":
-          description: Bucket created
+          description: Created
+        "400":
+          description: Bad Request
           schema:
             type: string
         "500":
@@ -120,30 +129,30 @@ paths:
             type: string
       summary: Create bucket
       tags:
-      - S3
+      - Buckets
   /api/connect:
     post:
       consumes:
       - application/json
-      description: Tests connection and creates a session if successful
+      description: Establish connection to S3 storage and create session
       parameters:
       - description: Connection parameters
         in: body
         name: connection
         required: true
         schema:
-          $ref: '#/definitions/main.ConnectionRequest'
+          $ref: '#/definitions/models.ConnectionRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.ConnectionResponse'
+            $ref: '#/definitions/models.ConnectionResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/main.ConnectionResponse'
+            $ref: '#/definitions/models.ConnectionResponse'
       summary: Connect to S3
       tags:
       - Session
@@ -162,9 +171,7 @@ paths:
       - Session
   /api/objects:
     get:
-      consumes:
-      - application/json
-      description: Retrieves a list of objects from the S3 bucket.
+      description: Lists all objects in a specified S3 bucket
       parameters:
       - description: Bucket name
         in: query
@@ -178,85 +185,95 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/main.S3Object'
+              $ref: '#/definitions/models.S3Object'
             type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
         "500":
           description: Internal Server Error
           schema:
             type: string
       summary: List objects
       tags:
-      - S3
+      - Objects
   /api/objects/{key}:
     delete:
-      consumes:
-      - application/json
-      description: Deletes an object from the S3 bucket by key.
+      description: Deletes an object from the specified S3 bucket
       parameters:
+      - description: Object key
+        in: path
+        name: key
+        required: true
+        type: string
       - description: Bucket name
         in: query
         name: bucket
         required: true
         type: string
-      - description: Object Key
-        in: path
-        name: key
-        required: true
-        type: string
-      produces:
-      - application/json
       responses:
         "204":
           description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Object not found
+          schema:
+            type: string
         "500":
           description: Internal Server Error
           schema:
             type: string
       summary: Delete object
       tags:
-      - S3
+      - Objects
     get:
-      consumes:
-      - application/json
-      description: Retrieves an object from the S3 bucket by key.
+      description: Retrieves an object from S3 for viewing or download
       parameters:
+      - description: Object key
+        in: path
+        name: key
+        required: true
+        type: string
       - description: Bucket name
         in: query
         name: bucket
         required: true
         type: string
-      - description: Object Key
-        in: path
-        name: key
-        required: true
-        type: string
-      produces:
-      - application/octet-stream
       responses:
         "200":
-          description: Object data
+          description: Object content
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Object not found
           schema:
             type: string
         "500":
           description: Internal Server Error
           schema:
             type: string
-      summary: View object
+      summary: View/Download object
       tags:
-      - S3
+      - Objects
     post:
       consumes:
       - multipart/form-data
-      description: Uploads an object to the S3 bucket
+      description: Uploads a file to the specified S3 bucket
       parameters:
+      - description: Object key
+        in: path
+        name: key
+        required: true
+        type: string
       - description: Bucket name
         in: query
         name: bucket
-        required: true
-        type: string
-      - description: Object Key
-        in: path
-        name: key
         required: true
         type: string
       - description: File to upload
@@ -268,7 +285,13 @@ paths:
       - application/json
       responses:
         "201":
-          description: Object uploaded
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
           schema:
             type: string
         "500":
@@ -277,20 +300,17 @@ paths:
             type: string
       summary: Upload object
       tags:
-      - S3
+      - Objects
   /api/presigned-url:
     get:
-      consumes:
-      - application/json
-      description: Generate a temporary pre-signed URL that allows direct browser
-        access to an S3 object
+      description: Generate a temporary URL for direct browser access to an S3 object
       parameters:
-      - description: S3 bucket name
+      - description: Bucket name
         in: query
         name: bucket
         required: true
         type: string
-      - description: Object key/path in the bucket
+      - description: Object key
         in: query
         name: key
         required: true
@@ -299,36 +319,32 @@ paths:
       - application/json
       responses:
         "200":
-          description: Returns a JSON object with the pre-signed URL
+          description: OK
           schema:
             additionalProperties:
               type: string
             type: object
         "400":
-          description: Bad request - missing bucket or key parameter
-          schema:
-            type: string
-        "401":
-          description: Unauthorized - invalid or missing session
+          description: Bad Request
           schema:
             type: string
         "500":
-          description: Internal server error
+          description: Internal Server Error
           schema:
             type: string
-      summary: Get a pre-signed URL for an S3 object
+      summary: Get presigned URL
       tags:
-      - S3
+      - Objects
   /api/session/status:
     get:
-      description: Checks if user has an active S3 session
+      description: Check if the current request has a valid session
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.SessionStatusResponse'
+            $ref: '#/definitions/models.SessionStatusResponse'
       summary: Check session status
       tags:
       - Session
