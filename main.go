@@ -26,7 +26,7 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-//go:generate cd frontend && npm run build && cd ..
+//go:generate sh -c "cd frontend && npm install && npm run build"
 //go:embed frontend/dist
 var app embed.FS
 
