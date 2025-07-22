@@ -1,0 +1,92 @@
+# .goreleaser.yml
+before:
+  hooks:
+    # Build the frontend before packaging
+    - cd frontend && npm install && npm run build
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+    # Binary name
+    binary: s3-browser
+    # Main package path
+    main: .
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+
+brews:
+  - name: s3-browser
+    tap:
+      owner: cksidharthan  # Replace with your GitHub username
+      name: homebrew-tap           # This will create a homebrew-tap repository
+      token: "{{ .Env.GITHUB_TOKEN }}"
+    
+    # Git author used to commit to the repository
+    commit_author:
+      name: Sidharthan Kamaraj
+      email: csidharthank@gmail.com
+    
+    # The project homepage
+    homepage: "https://github.com/cksidharthan/s3-browser"
+    
+    # Your app's description
+    description: "A user-friendly browser for S3-compatible object storage"
+    
+    # Custom installation caveats
+    caveats: |
+      s3-browser is a browser for S3-compatible storage.
+      Run 's3-browser' to start the application.
+    
+    # Custom installation instructions
+    install: |
+      bin.install "s3-browser"
+    
+    # Testing instructions that will be in the brew formula
+    test: |
+      system "#{bin}/s3-browser", "--version"
+    
+    # Optional dependencies
+    dependencies:
+      - name: git
+      
+    # Specify license type
+    license: "MIT"
