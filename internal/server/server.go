@@ -3,10 +3,12 @@ package server
 import (
 	"context"
 	"embed"
+	"io"
 	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/cksidharthan/s3-browser/internal/handlers"
@@ -94,8 +96,6 @@ func (s *Server) handleObjectOperations(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-
-
 // setupFrontendRoutes configures static file serving for the frontend
 func (s *Server) setupFrontendRoutes(frontendFS embed.FS) {
 	// Extract embedded frontend files
@@ -105,9 +105,41 @@ func (s *Server) setupFrontendRoutes(frontendFS embed.FS) {
 		os.Exit(1)
 	}
 
-	// Serve static files at root path
-	fileServer := http.FileServer(http.FS(dist))
-	s.mux.Handle("/", fileServer)
+	// Custom SPA handler
+	s.mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// API routes should return 404 if not found
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			http.NotFound(w, r)
+			return
+		}
+
+		path := strings.TrimPrefix(r.URL.Path, "/")
+		if path == "" {
+			path = "index.html"
+		}
+
+		// Try to open the requested file
+		file, err := dist.Open(path)
+		if err == nil {
+			// File exists, serve it
+			file.Close()
+			http.FileServer(http.FS(dist)).ServeHTTP(w, r)
+			return
+		}
+
+		// File doesn't exist, serve index.html (SPA fallback)
+		indexFile, err := dist.Open("index.html")
+		if err != nil {
+			s.logger.Error("Failed to serve index.html", slog.String("error", err.Error()))
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		defer indexFile.Close()
+
+		// Set proper content type and serve index.html
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		io.Copy(w, indexFile)
+	})
 }
 
 // requireMethod ensures only specified HTTP methods are allowed
