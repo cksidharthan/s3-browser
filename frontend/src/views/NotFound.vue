@@ -1,76 +1,75 @@
 <template>
-  <div class="min-h-screen relative z-10 flex items-center justify-center p-6">
-    <!-- Animated floating circles -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-      <div class="absolute top-1/4 left-1/4 w-20 h-20 bg-white bg-opacity-10 rounded-full animate-pulse animation-delay-0"></div>
-      <div class="absolute top-3/4 right-1/4 w-32 h-32 bg-white bg-opacity-10 rounded-full animate-bounce animation-delay-1000"></div>
-      <div class="absolute bottom-1/4 left-1/3 w-16 h-16 bg-white bg-opacity-10 rounded-full animate-pulse animation-delay-2000"></div>
-    </div>
-    
-    <!-- Main content card -->
-    <Card class="max-w-2xl w-full glass-modal">
-      <template #content>
-        <!-- 404 Icon -->
-        <div class="mb-8 text-center">
-          <div class="relative inline-block">
-            <i class="pi pi-search text-8xl text-indigo-600 animate-bounce"></i>
-            <div class="absolute -top-2 -right-2">
-              <Badge value="404" severity="danger" size="large" class="animate-pulse" />
+  <div class="min-h-screen bg-gray-100">
+    <!-- Header matching the main app -->
+    <header class="bg-white shadow">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <div class="flex">
+            <div class="flex-shrink-0 flex items-center">
+              <span class="text-xl font-bold text-gray-800">S3 Manager</span>
             </div>
           </div>
+          <div class="flex items-center">
+            <button
+              @click="goHome"
+              class="inline-flex items-center px-3 py-2 border border-blue-400 rounded-md text-sm font-medium text-white bg-blue-500 hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-300 transition-colors"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              Home
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div class="text-center">
+        <!-- 404 Error -->
+        <div class="mb-8">
+          <h1 class="text-9xl font-bold text-gray-300 mb-4">404</h1>
+          <div class="w-24 h-1 bg-blue-500 mx-auto mb-8"></div>
         </div>
         
-        <!-- Error Text -->
-        <div class="mb-10 text-center">
-          <h1 class="text-6xl font-black text-gradient mb-4">
-            4<span class="animate-pulse">0</span>4
-          </h1>
-          <h2 class="text-3xl font-bold text-gray-900 mb-4">Oops! Page not found</h2>
-          <p class="text-lg text-gray-600 font-medium max-w-md mx-auto leading-relaxed">
-            The page you're looking for seems to have wandered off.
-            <br class="hidden sm:block">Don't worry, it happens to the best of us!
+        <!-- Error message -->
+        <div class="mb-12">
+          <h2 class="text-3xl font-bold text-gray-900 mb-4">Page Not Found</h2>
+          <p class="text-lg text-gray-600 max-w-md mx-auto leading-relaxed">
+            The page you're looking for doesn't exist or has been moved.
           </p>
         </div>
         
-        <!-- Action Buttons -->
-        <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-          <Button 
-            @click="goHome" 
-            class="btn-gradient"
-            size="large"
+        <!-- Action buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <button
+            @click="goHome"
+            class="inline-flex items-center px-6 py-3 border border-transparent rounded-md text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
           >
-            <i class="pi pi-home mr-3"></i>
-            <span>Take me home</span>
-            <i class="pi pi-arrow-right ml-3"></i>
-          </Button>
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Go to Home
+          </button>
           
-          <Button 
-            @click="goBack" 
-            class="btn-glass"
-            size="large"
+          <button
+            @click="goBack"
+            class="inline-flex items-center px-6 py-3 border border-gray-300 rounded-md text-base font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
           >
-            <i class="pi pi-arrow-left mr-3"></i>
-            <span>Go back</span>
-          </Button>
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Go Back
+          </button>
         </div>
-        
-        <!-- Help text -->
-        <div class="pt-6 border-t border-gray-200">
-          <InlineMessage severity="info" class="w-full">
-            If you believe this is an error, please contact support or try refreshing the page.
-          </InlineMessage>
-        </div>
-      </template>
-    </Card>
+      </div>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import Card from 'primevue/card'
-import Button from 'primevue/button'
-import Badge from 'primevue/badge'
-import InlineMessage from 'primevue/inlinemessage'
 
 const router = useRouter()
 

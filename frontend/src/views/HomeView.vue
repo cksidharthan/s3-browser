@@ -1,6 +1,3 @@
-<script setup lang="ts">
-</script>
-
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Loading State -->
@@ -13,7 +10,7 @@
       <div class="max-w-md w-full space-y-8">
         <div>
           <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Connect to S3
+            S3 Manager
           </h2>
           <p class="mt-2 text-center text-sm text-gray-600">
             Enter your S3 credentials to get started
@@ -109,7 +106,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, onMounted } from 'vue'
 import BucketsView from './BucketsView.vue'
 
