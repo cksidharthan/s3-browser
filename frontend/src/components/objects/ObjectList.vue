@@ -313,13 +313,38 @@ const formatFileSize = (bytes: number): string => {
 
 const viewObject = (key: string) => {
   const fileExtension = key.split('.').pop()?.toLowerCase();
-  const mediaExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'mp4', 'webm', 'mp3', 'wav', 'ogg', 'pdf'];
+  
+  // Define file types that should open in new tab
+  const newTabExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'mp4', 'webm', 'mp3', 'wav', 'ogg', 'pdf'];
+  
+  // Define text-based file types that should open in modal
+  const textExtensions = ['txt', 'json', 'xml', 'html', 'htm', 'css', 'js', 'ts', 'md', 'log', 'csv', 'yml', 'yaml', 'sql', 'py', 'java', 'cpp', 'c', 'h', 'go', 'rs', 'sh', 'bash', 'zsh', 'ps1', 'dockerfile', 'config', 'conf', 'ini', 'properties'];
 
   // Use the objects endpoint for viewing files
   const viewUrl = `/api/objects/${encodeURIComponent(key)}?bucket=${encodeURIComponent(props.bucket)}`;
 
-  if (fileExtension && mediaExtensions.includes(fileExtension)) {
-    // For media files, create a modal with appropriate embedded content
+  if (fileExtension && newTabExtensions.includes(fileExtension)) {
+    // For PDF and media files, open in new tab
+    window.open(viewUrl, '_blank');
+  } else if (fileExtension && textExtensions.includes(fileExtension)) {
+    // For text-based files, show in modal with text content
+    showTextModal(viewUrl, key);
+  } else {
+    // For unknown file types, try to open in new tab
+    window.open(viewUrl, '_blank');
+  }
+}
+
+const showTextModal = async (url: string, filename: string) => {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch file: ${response.statusText}`);
+    }
+    
+    const content = await response.text();
+    
+    // Create modal
     const modal = document.createElement('div');
     modal.style.position = 'fixed';
     modal.style.top = '0';
@@ -331,75 +356,81 @@ const viewObject = (key: string) => {
     modal.style.display = 'flex';
     modal.style.justifyContent = 'center';
     modal.style.alignItems = 'center';
+    modal.style.padding = '20px';
 
-    // Create close button
+    // Create modal content container
+    const contentContainer = document.createElement('div');
+    contentContainer.style.backgroundColor = '#fff';
+    contentContainer.style.borderRadius = '8px';
+    contentContainer.style.width = '90%';
+    contentContainer.style.height = '90%';
+    contentContainer.style.display = 'flex';
+    contentContainer.style.flexDirection = 'column';
+    contentContainer.style.overflow = 'hidden';
+
+    // Create header with filename and close button
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+    header.style.padding = '15px 20px';
+    header.style.borderBottom = '1px solid #e5e5e5';
+    header.style.backgroundColor = '#f8f9fa';
+
+    const title = document.createElement('h3');
+    title.textContent = filename;
+    title.style.margin = '0';
+    title.style.fontSize = '16px';
+    title.style.fontWeight = '600';
+
     const closeBtn = document.createElement('button');
-    closeBtn.textContent = 'Close';
-    closeBtn.style.position = 'absolute';
-    closeBtn.style.top = '20px';
-    closeBtn.style.right = '20px';
-    closeBtn.style.padding = '10px';
-    closeBtn.style.background = '#fff';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.style.background = 'none';
     closeBtn.style.border = 'none';
-    closeBtn.style.borderRadius = '5px';
+    closeBtn.style.fontSize = '24px';
     closeBtn.style.cursor = 'pointer';
+    closeBtn.style.color = '#666';
+    closeBtn.style.padding = '0';
+    closeBtn.style.width = '30px';
+    closeBtn.style.height = '30px';
+    closeBtn.style.display = 'flex';
+    closeBtn.style.alignItems = 'center';
+    closeBtn.style.justifyContent = 'center';
     closeBtn.onclick = () => document.body.removeChild(modal);
 
-    let content: HTMLElement;
+    // Create content area
+    const textContent = document.createElement('pre');
+    textContent.textContent = content;
+    textContent.style.flex = '1';
+    textContent.style.margin = '0';
+    textContent.style.padding = '20px';
+    textContent.style.overflow = 'auto';
+    textContent.style.fontFamily = 'Monaco, Menlo, \'Ubuntu Mono\', monospace';
+    textContent.style.fontSize = '14px';
+    textContent.style.lineHeight = '1.5';
+    textContent.style.whiteSpace = 'pre-wrap';
+    textContent.style.backgroundColor = '#f8f9fa';
 
-    // Create appropriate element based on file type
-    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'].includes(fileExtension)) {
-      const imgElement = document.createElement('img');
-      imgElement.src = viewUrl;
-      imgElement.style.maxWidth = '90%';
-      imgElement.style.maxHeight = '90%';
-      imgElement.style.objectFit = 'contain';
-      content = imgElement;
-    } else if (['mp4', 'webm'].includes(fileExtension)) {
-      const videoElement = document.createElement('video');
-      videoElement.src = viewUrl;
-      videoElement.controls = true;
-      videoElement.autoplay = true;
-      videoElement.style.maxWidth = '90%';
-      videoElement.style.maxHeight = '90%';
-      content = videoElement;
-    } else if (['mp3', 'wav', 'ogg'].includes(fileExtension)) {
-      const audioElement = document.createElement('audio');
-      audioElement.src = viewUrl;
-      audioElement.controls = true;
-      audioElement.autoplay = true;
-      audioElement.style.width = '80%';
-      content = audioElement;
-    } else if (fileExtension === 'pdf') {
-      const iframeElement = document.createElement('iframe');
-      iframeElement.src = viewUrl;
-      iframeElement.style.width = '90%';
-      iframeElement.style.height = '90%';
-      iframeElement.style.border = 'none';
-      content = iframeElement;
-    } else {
-      // Default case for other media types - use iframe
-      const iframeElement = document.createElement('iframe');
-      iframeElement.src = viewUrl;
-      iframeElement.style.width = '90%';
-      iframeElement.style.height = '90%';
-      iframeElement.style.border = 'none';
-      content = iframeElement;
-    }
+    // Assemble modal
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+    contentContainer.appendChild(header);
+    contentContainer.appendChild(textContent);
+    modal.appendChild(contentContainer);
 
-    // Add click handler to close when clicking outside the content
+    // Close modal when clicking outside
     modal.onclick = (event) => {
       if (event.target === modal) {
         document.body.removeChild(modal);
       }
     };
 
-    modal.appendChild(content);
-    modal.appendChild(closeBtn);
     document.body.appendChild(modal);
-  } else {
-    // For non-media files (like JSON, text, etc.), open in a new tab
-    window.open(viewUrl, '_blank');
+    
+  } catch (error) {
+    console.error('Error fetching file content:', error);
+    // Fallback to opening in new tab if text fetch fails
+    window.open(url, '_blank');
   }
 }
 
