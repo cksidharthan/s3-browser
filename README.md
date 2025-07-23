@@ -58,12 +58,14 @@ A modern, web-based file manager for S3-compatible storage systems. Built with G
 
 ## 📦 Installation
 
-### Prerequisites
-- Go 1.24.4 or later
-- Node.js 18+ and npm (for frontend development)
-- Access to S3-compatible storage (AWS S3, MinIO, etc.)
+### Option 1: Using homebrew
 
-### Option 1: Download Binary (Recommended)
+```bash
+brew tap cksidharthan/homebrew-tap
+brew install s3-browser
+```
+
+### Option 2: Download Binary
 
 ```bash
 # Download the latest release for your platform
@@ -77,15 +79,11 @@ wget https://github.com/cksidharthan/s3-browser/releases/latest/download/s3-brow
 chmod +x s3-browser-darwin-amd64
 ./s3-browser-darwin-amd64
 
-You can also use homebrew to install the latest release
-brew tap cksidharthan/homebew-tap
-brew install s3-browser
-
 # Windows
 Download s3-browser-windows-amd64.exe and run it
 ```
 
-### Option 2: Build from Source
+### Option 3: Build from Source
 
 ```bash
 # Clone the repository
@@ -109,7 +107,10 @@ go build -o s3-browser main.go
 
 1. **Start the application**:
    ```bash
-   ./s3-browser
+   s3-browser
+
+   ## optionally you can also specify the port as below
+   s3-browser -port 9090
    ```
    The server will start on `http://localhost:8080`
 
@@ -123,6 +124,26 @@ go build -o s3-browser main.go
    - Click "Test Connection and Continue"
 
 4. **Start managing your buckets and objects**!
+
+## 🪏 Available options
+```bash
+❯ s3-browser -help
+S3 Browser - A modern web-based file manager for S3-compatible storage
+
+Usage:
+  -help
+        Show help message
+  -log-level string
+        Log level (debug, info, warn, error) (default "info")
+  -port string
+        Port to run the server on (default "8080")
+
+Examples:
+  s3-browser
+  s3-browser -port 3000
+  s3-browser -port 8080 -log-level debug
+  s3-browser -help
+```
 
 ## 📱 Usage
 
