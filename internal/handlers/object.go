@@ -57,8 +57,8 @@ func (h *ObjectHandler) ListObjects(w http.ResponseWriter, r *http.Request) {
 		Bucket: aws.String(bucket),
 	})
 	if err != nil {
-		h.logger.Error("Failed to list objects", 
-			slog.String("bucket", bucket), 
+		h.logger.Error("Failed to list objects",
+			slog.String("bucket", bucket),
 			slog.String("error", err.Error()))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -71,7 +71,7 @@ func (h *ObjectHandler) ListObjects(w http.ResponseWriter, r *http.Request) {
 				Key:  aws.ToString(obj.Key),
 				Size: aws.ToInt64(obj.Size),
 			}
-			
+
 			if obj.ETag != nil {
 				s3Object.ETag = aws.ToString(obj.ETag)
 			}
@@ -81,7 +81,7 @@ func (h *ObjectHandler) ListObjects(w http.ResponseWriter, r *http.Request) {
 			if obj.LastModified != nil {
 				s3Object.LastModified = obj.LastModified.Format("2006-01-02 15:04:05")
 			}
-			
+
 			objects = append(objects, s3Object)
 		}
 	}
@@ -170,26 +170,27 @@ func (h *ObjectHandler) UploadObject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = session.S3Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:        aws.String(bucket),
-		Key:           aws.String(key),
-		Body:          file,
-		ContentType:   aws.String(contentType),
-		ContentLength: &header.Size,
+		Bucket:         aws.String(bucket),
+		Key:            aws.String(key),
+		Body:           file,
+		ContentType:    aws.String(contentType),
+		ContentLength:  &header.Size,
+		ChecksumSHA256: aws.String(""),
 	})
 	if err != nil {
-		h.logger.Error("Failed to upload object", 
-			slog.String("bucket", bucket), 
-			slog.String("key", key), 
+		h.logger.Error("Failed to upload object",
+			slog.String("bucket", bucket),
+			slog.String("key", key),
 			slog.String("error", err.Error()))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	h.logger.Info("Object uploaded", 
-		slog.String("bucket", bucket), 
+	h.logger.Info("Object uploaded",
+		slog.String("bucket", bucket),
 		slog.String("key", key),
 		slog.Int64("size", header.Size))
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{
@@ -235,11 +236,11 @@ func (h *ObjectHandler) ViewObject(w http.ResponseWriter, r *http.Request) {
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		h.logger.Error("Failed to get object", 
-			slog.String("bucket", bucket), 
-			slog.String("key", key), 
+		h.logger.Error("Failed to get object",
+			slog.String("bucket", bucket),
+			slog.String("key", key),
 			slog.String("error", err.Error()))
-		
+
 		// Determine status code based on error
 		if strings.Contains(err.Error(), "NoSuchKey") {
 			http.Error(w, "Object not found", http.StatusNotFound)
@@ -257,7 +258,7 @@ func (h *ObjectHandler) ViewObject(w http.ResponseWriter, r *http.Request) {
 	if result.ContentLength != nil {
 		w.Header().Set("Content-Length", strconv.FormatInt(*result.ContentLength, 10))
 	}
-	
+
 	// Set filename for download
 	filename := filepath.Base(key)
 	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", filename))
@@ -265,15 +266,15 @@ func (h *ObjectHandler) ViewObject(w http.ResponseWriter, r *http.Request) {
 	// Copy object content to response
 	_, err = io.Copy(w, result.Body)
 	if err != nil {
-		h.logger.Error("Failed to copy object content", 
-			slog.String("bucket", bucket), 
-			slog.String("key", key), 
+		h.logger.Error("Failed to copy object content",
+			slog.String("bucket", bucket),
+			slog.String("key", key),
 			slog.String("error", err.Error()))
 		return
 	}
 
-	h.logger.Info("Object served", 
-		slog.String("bucket", bucket), 
+	h.logger.Info("Object served",
+		slog.String("bucket", bucket),
 		slog.String("key", key))
 }
 
@@ -313,18 +314,18 @@ func (h *ObjectHandler) DeleteObject(w http.ResponseWriter, r *http.Request) {
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		h.logger.Error("Failed to delete object", 
-			slog.String("bucket", bucket), 
-			slog.String("key", key), 
+		h.logger.Error("Failed to delete object",
+			slog.String("bucket", bucket),
+			slog.String("key", key),
 			slog.String("error", err.Error()))
-		
+
 		// S3 delete doesn't fail if object doesn't exist, but handle other errors
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	h.logger.Info("Object deleted", 
-		slog.String("bucket", bucket), 
+	h.logger.Info("Object deleted",
+		slog.String("bucket", bucket),
 		slog.String("key", key))
 	w.WriteHeader(http.StatusNoContent)
 }
